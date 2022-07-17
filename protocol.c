@@ -64,7 +64,7 @@ int recvMsg(int socket, Message *msg){
 int sendMessage(int conn_sock, Message msg) {
   int bytes_sent = sendMsg(conn_sock, msg);
   if(bytes_sent <= 0){
-    printf("\nConnection closed!\n");
+    printf("\nSend Connection closed!\n");
     close(conn_sock);
     return -1;
   }
@@ -75,7 +75,7 @@ int receiveMessage(int conn_sock, Message *msg) {
   int bytes_received;
   bytes_received = recvMsg(conn_sock, msg);
   if (bytes_received <= 0){
-    printf("\nConnection closed\n");
+    printf("\nReceive Connection closed\n");
     return -1;
   }
   return 1;
@@ -138,6 +138,8 @@ char* getHeaderOfPayload(char* payload) {
 }
 
 void sendWithCode(Message mess,StatusCode code, int sockfd) {
+  printf(mess.payload);
+
     char msgCode[200];
     Message *newMess = (Message*)malloc(sizeof(Message));
     newMess->type = mess.type;

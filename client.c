@@ -696,7 +696,7 @@ void getLoginInfo(char *str)
 	scanf("%[^\n]s", password);
 	while (getchar() != '\n')
 		;
-	sprintf(mess->payload, "LOGIN\nUSER %s\nPASS %s", username, password);
+	sprintf(mess->payload, "USER %s\nPASS %s", username, password);
 	strcpy(str, username);
 }
 
@@ -708,7 +708,7 @@ void getLoginInfo(char *str)
 void loginFunc(char *current_user)
 {
 	char username[255];
-	mess->type = TYPE_AUTHENTICATE;
+	mess->type = TYPE_LOGIN;
 	getLoginInfo(username);
 	mess->length = strlen(mess->payload);
 
@@ -754,7 +754,7 @@ int getRegisterInfo(char *user)
 		;
 	if (!strcmp(password, confirmPass))
 	{
-		sprintf(mess->payload, "REGISTER\nUSER %s\nPASS %s", username, password);
+		sprintf(mess->payload, "USER %s\nPASS %s", username, password);
 		strcpy(user, username);
 		return 1;
 	}
@@ -775,7 +775,7 @@ void registerFunc(char *current_user)
 	char username[255];
 	if (getRegisterInfo(username))
 	{
-		mess->type = TYPE_AUTHENTICATE;
+		mess->type = TYPE_REGISTER;
 		mess->length = strlen(mess->payload);
 		sendMessage(client_sock, *mess);
 		receiveMessage(client_sock, mess);
@@ -805,8 +805,8 @@ void registerFunc(char *current_user)
  */
 void logoutFunc(char *current_user)
 {
-	mess->type = TYPE_AUTHENTICATE;
-	sprintf(mess->payload, "LOGOUT\n%s", current_user);
+	mess->type = TYPE_LOGOUT;
+	sprintf(mess->payload, "%s", current_user);
 	mess->length = strlen(mess->payload);
 	sendMessage(client_sock, *mess);
 	receiveMessage(client_sock, mess);

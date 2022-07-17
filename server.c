@@ -355,10 +355,10 @@ void handleLogin(Message mess, int connSock)
 	char **temp = str_split(mess.payload, '\n'); // handle payload, divide payload to array string split by '\n'
 	StatusCode loginCode;
 	// User* curUser = NULL;
-	if (numberElementsInArray(temp) == 3)
+	if (numberElementsInArray(temp) == 2)
 	{
-		char **userStr = str_split(temp[1], ' '); // get username
-		char **passStr = str_split(temp[2], ' '); // get password
+		char **userStr = str_split(temp[0], ' '); // get username
+		char **passStr = str_split(temp[1], ' '); // get password
 		if ((numberElementsInArray(userStr) == 2) && (numberElementsInArray(passStr) == 2))
 		{ // check payload structure valid with two parameters
 			if (!(strcmp(userStr[0], COMMAND_USER) || strcmp(passStr[0], COMMAND_PASSWORD)))
@@ -420,10 +420,10 @@ void handleRegister(Message mess, int connSock)
 {
 	char **temp = str_split(mess.payload, '\n');
 	StatusCode registerCode;
-	if (numberElementsInArray(temp) == 3)
+	if (numberElementsInArray(temp) == 2)
 	{
-		char **userStr = str_split(temp[1], ' ');
-		char **passStr = str_split(temp[2], ' ');
+		char **userStr = str_split(temp[0], ' ');
+		char **passStr = str_split(temp[1], ' ');
 		if ((numberElementsInArray(userStr) == 2) && (numberElementsInArray(passStr) == 2))
 		{
 			if (!(strcmp(userStr[0], COMMAND_USER) || strcmp(passStr[0], COMMAND_PASSWORD)))
@@ -445,6 +445,7 @@ void handleRegister(Message mess, int connSock)
 							increaseRequestId();
 							int i = findAvaiableElementInArrayClient();
 							setClient(i, mess.requestId, username, connSock);
+							printf("Register ID:%d, rqID: %d, connsock: %d\n", i, mess.requestId, connSock);
 							createFolder(username);
 						}
 					}
@@ -480,7 +481,7 @@ void handleLogout(Message mess, int connSock)
 {
 	char **temp = str_split(mess.payload, '\n');
 	StatusCode logoutCode;
-	if (numberElementsInArray(temp) != 2)
+	if (numberElementsInArray(temp) != 1)
 	{
 		mess.type = TYPE_ERROR;
 		logoutCode = COMMAND_INVALID;
@@ -488,7 +489,7 @@ void handleLogout(Message mess, int connSock)
 	}
 	else
 	{
-		logoutCode = logoutUser(temp[1]);
+		logoutCode = logoutUser(mess.payload);
 		if (logoutCode == LOGOUT_SUCCESS)
 		{
 			int i = findClient(mess.requestId);
@@ -502,25 +503,25 @@ void handleLogout(Message mess, int connSock)
 	sendWithCode(mess, logoutCode, connSock);
 }
 
-void handleAuthenticateRequest(Message mess, int connSock)
-{
-	char *payloadHeader;
-	char temp[PAYLOAD_SIZE];
-	strcpy(temp, mess.payload);
-	payloadHeader = getHeaderOfPayload(temp);
-	if (!strcmp(payloadHeader, LOGIN_CODE))
-	{
-		handleLogin(mess, connSock);
-	}
-	else if (!strcmp(payloadHeader, REGISTER_CODE))
-	{
-		handleRegister(mess, connSock);
-	}
-	else if (!strcmp(payloadHeader, LOGOUT_CODE))
-	{
-		handleLogout(mess, connSock);
-	}
-}
+// void handleAuthenticateRequest(Message mess, int connSock)
+// {
+// 	char *payloadHeader;
+// 	char temp[PAYLOAD_SIZE];
+// 	strcpy(temp, mess.payload);
+// 	payloadHeader = getHeaderOfPayload(temp);
+// 	if (!strcmp(payloadHeader, LOGIN_CODE))
+// 	{
+// 		handleLogin(mess, connSock);
+// 	}
+// 	else if (!strcmp(payloadHeader, REGISTER_CODE))
+// 	{
+// 		handleRegister(mess, connSock);
+// 	}
+// 	else if (!strcmp(payloadHeader, LOGOUT_CODE))
+// 	{
+// 		handleLogout(mess, connSock);
+// 	}
+// }
 
 /*
  * Handler Request from Client
@@ -552,8 +553,16 @@ void *client_handler(void *conn_sock)
 		// blocking
 		switch (recvMess.type)
 		{
-		case TYPE_AUTHENTICATE:
-			handleAuthenticateRequest(recvMess, connSock);
+		case TYPE_LOGIN:
+			handleLogin(recvMess, connSock);
+			// printListOnlineClient();
+			break;
+		case TYPE_LOGOUT:
+			handleLogout(recvMess, connSock);
+			// printListOnlineClient();
+			break;
+		case TYPE_REGISTER:
+			handleRegister(recvMess, connSock);
 			// printListOnlineClient();
 			break;
 		case TYPE_REQUEST_DIRECTORY:
