@@ -380,7 +380,7 @@ void handleLogin(Message mess, int connSock)
 							increaseRequestId();
 							int i = findAvaiableElementInArrayClient();
 							setClient(i, mess.requestId, username, connSock); // when user login success set user to online client
-							printf("Login ID:%d, rqID: %d, connsock: %d\n", i, mess.requestId, connSock);
+							printf("RqID: %d, connsock: %d\n", mess.requestId, connSock);
 							createFolder(username);
 						}
 					}
@@ -407,7 +407,7 @@ void handleLogin(Message mess, int connSock)
 	{
 		mess.type = TYPE_ERROR;
 		loginCode = COMMAND_INVALID;
-		printf("Fails on handle Login!!");
+		// printf("Fails on handle Login!!");
 	}
 	sendWithCode(mess, loginCode, connSock);
 }
@@ -445,7 +445,7 @@ void handleRegister(Message mess, int connSock)
 							increaseRequestId();
 							int i = findAvaiableElementInArrayClient();
 							setClient(i, mess.requestId, username, connSock);
-							printf("Register ID:%d, rqID: %d, connsock: %d\n", i, mess.requestId, connSock);
+							printf("RqID: %d, connsock: %d\n", mess.requestId, connSock);
 							createFolder(username);
 						}
 					}
@@ -472,7 +472,7 @@ void handleRegister(Message mess, int connSock)
 	{
 		mess.type = TYPE_ERROR;
 		registerCode = COMMAND_INVALID;
-		printf("Fails on handle Register!!");
+		// printf("Fails on handle Register!!");
 	}
 	sendWithCode(mess, registerCode, connSock);
 }
@@ -485,7 +485,7 @@ void handleLogout(Message mess, int connSock)
 	{
 		mess.type = TYPE_ERROR;
 		logoutCode = COMMAND_INVALID;
-		printf("Fails on handle logout!!");
+		// printf("Fails on handle logout!!");
 	}
 	else
 	{
