@@ -203,9 +203,8 @@ void showDirectory(char *root)
  * @param message
  * @return void
  */
-void uploadFile()
+void uploadMultiFile()
 {
-	char fileName[30];
 	char fullPath[100];
 	int i = 0;
 	printf("\n------------------ Upload File ------------------\n");
@@ -242,70 +241,99 @@ void uploadFile()
 		return;
 	printf("Please input the path of file you want to upload:");
 	scanf("%[^\n]s", fullPath);
+
+	char **temp = str_split(&fullPath[0], ' ');
+
 	Message msg, sendMsg, recvMsg;
-	FILE *fptr;
-	if ((fptr = fopen(fullPath, "rb+")) == NULL)
+
+	int num_file = atoi(temp[0]);
+	char message[20];
+	for( int i = 0; i< atoi(temp[0]); i++){
+		FILE *fptr;
+		char fileName[30];
+		if ((fptr = fopen(temp[i+1], "rb+")) == NULL)
+		{
+			printf("Error: File %s not found\n", temp[i+1]);
+			num_file -= 1 ;
+		}
+		else
+		{
+			toNameOfFile(temp[i+1], fileName);
+			if (option == 1)
+			{
+				char file[1024];
+				sprintf(&file[0], "_./%s/%s", current_user, fileName);
+				strcat(message, file);
+
+			}
+			else
+			{
+				char file[1024];
+				// strcat(file, fileName);
+				sprintf(file, "_./%s/%s", listFolder[option - 2], fileName);
+				strcat(message, file);
+			}
+		}
+		fclose(fptr);
+	}
+
+	char c = num_file+'0';
+	sprintf(msg.payload, "%c%s", c, message);
+	printf("%s\n", msg.payload);
+	msg.type = TYPE_UPLOAD_FILE;
+	msg.length = strlen(msg.payload);
+	msg.requestId = requestId;
+	sendMessage(client_sock, msg);
+	receiveMessage(client_sock, &recvMsg);
+
+	if (recvMsg.type == TYPE_ERROR)
 	{
-		printf("Error: File not found\n");
+		printf("%s\n", recvMsg.payload);
 	}
 	else
-	{
-		toNameOfFile(fullPath, fileName);
-		if (option == 1)
-		{
-			sprintf(msg.payload, "./%s/%s", current_user, fileName);
-		}
-		else
-		{
-			sprintf(msg.payload, "%s/%s", listFolder[option - 2], fileName);
-		}
-		msg.type = TYPE_UPLOAD_FILE;
-		msg.length = strlen(msg.payload);
-		msg.requestId = requestId;
-		sendMessage(client_sock, msg);
-		receiveMessage(client_sock, &recvMsg);
-		if (recvMsg.type == TYPE_ERROR)
-		{
-			printf("%s\n", recvMsg.payload);
+		for( int i = 0; i< atoi(temp[0]); i++){
+			FILE *fptr;
+			char fileName[30];
+			if ((fptr = fopen(temp[i+1], "rb+")) != NULL)
+			{
+				long filelen;
+				fseek(fptr, 0, SEEK_END); // Jump to the end of the file
+				filelen = ftell(fptr);	  // Get the current byte offset in the file
+				rewind(fptr);			  // pointer to start of file
+				int sumByte = 0;
+				while (!feof(fptr))
+					{
+						int numberByteSend = PAYLOAD_SIZE;
+						if ((sumByte + PAYLOAD_SIZE) > filelen)
+						{ // if over file size
+							numberByteSend = filelen - sumByte;
+						}
+						char *buffer = (char *)malloc((numberByteSend) * sizeof(char));
+						fread(buffer, numberByteSend, 1, fptr); // read buffer with size
+						memcpy(sendMsg.payload, buffer, numberByteSend);
+						sendMsg.length = numberByteSend;
+						sumByte += numberByteSend; // increase byte send
+						if (sendMessage(client_sock, sendMsg) <= 0)
+						{
+							printf("Connection closed!\n");
+							break;
+						}
+						free(buffer);
+						if (sumByte >= filelen)
+						{
+							break;
+						}
+					}
+					sendMsg.length = 0;
+					sendMessage(client_sock, sendMsg);
+					receiveMessage(client_sock, &recvMsg);
+					printf("%s\n", recvMsg.payload);	
+			}
 			fclose(fptr);
 		}
-		else
-		{
-			long filelen;
-			fseek(fptr, 0, SEEK_END); // Jump to the end of the file
-			filelen = ftell(fptr);	  // Get the current byte offset in the file
-			rewind(fptr);			  // pointer to start of file
-			int sumByte = 0;
-			while (!feof(fptr))
-			{
-				int numberByteSend = PAYLOAD_SIZE;
-				if ((sumByte + PAYLOAD_SIZE) > filelen)
-				{ // if over file size
-					numberByteSend = filelen - sumByte;
-				}
-				char *buffer = (char *)malloc((numberByteSend) * sizeof(char));
-				fread(buffer, numberByteSend, 1, fptr); // read buffer with size
-				memcpy(sendMsg.payload, buffer, numberByteSend);
-				sendMsg.length = numberByteSend;
-				sumByte += numberByteSend; // increase byte send
-				if (sendMessage(client_sock, sendMsg) <= 0)
-				{
-					printf("Connection closed!\n");
-					break;
-				}
-				free(buffer);
-				if (sumByte >= filelen)
-				{
-					break;
-				}
-			}
-			sendMsg.length = 0;
-			sendMessage(client_sock, sendMsg);
-			receiveMessage(client_sock, &recvMsg);
-			printf("%s\n", recvMsg.payload);
-		}
-	}
+					
 }
+
 
 void handleSearchFile(char *fileName, char *listResult)
 {
@@ -890,7 +918,7 @@ void requestFileFunc()
 	switch (choose)
 	{
 	case '1':
-		uploadFile();
+		uploadMultiFile();
 		getDirectory();
 		break;
 	case '2':

@@ -289,28 +289,30 @@ void removeFile(char *fileName)
  */
 void handleUploadFile(Message recvMsg, int connSock)
 {
-	FILE *fptr;
 	// char fileName[100];
 	char fullPath[100];
 	Message sendMsg;
-	strcpy(fullPath, recvMsg.payload);
+	char **temp = str_split(recvMsg.payload, '_');
+	// strcpy(fullPath, recvMsg.payload);
 	int i = findClient(recvMsg.requestId);
-	if (fopen(fullPath, "r") != NULL)
-	{ // check if file exist
-		sendMsg.type = TYPE_ERROR;
-		strcpy(sendMsg.payload, "Warning: File name already exists");
-		sendMsg.length = strlen(sendMsg.payload);
-		sendMsg.requestId = recvMsg.requestId;
-		sendMessage(onlineClient[i].connSock, sendMsg);
-		return;
+	for (int i=0 ; i < atoi(temp[0]); i++){
+		if (fopen(temp[i+1], "r") != NULL){ // check if file exist
+			sendMsg.type = TYPE_ERROR;
+			strcpy(sendMsg.payload, "Warning: File name already exists");
+			sendMsg.length = strlen(sendMsg.payload);
+			sendMsg.requestId = recvMsg.requestId;
+			sendMessage(onlineClient[i].connSock, sendMsg);
+			return;
+		}
 	}
-	else
+	
+	for (int i=0 ; i < atoi(temp[0]); i++)
 	{
 		sendMsg.type = TYPE_OK;
 		sendMsg.length = 0;
 		sendMsg.requestId = recvMsg.requestId;
 		sendMessage(onlineClient[i].connSock, sendMsg);
-		fptr = fopen(fullPath, "w+");
+		FILE* fptr = fopen(temp[i+1], "w+");
 		while (1)
 		{
 			receiveMessage(connSock, &recvMsg);
