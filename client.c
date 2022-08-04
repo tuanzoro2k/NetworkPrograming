@@ -208,11 +208,11 @@ void uploadMultiFile()
 	Message msg, sendMsg, recvMsg;
 
 	int num_file = atoi(temp[0]);
-	char message[20];
+	char message[20] = "";
 	for (int i = 0; i < atoi(temp[0]); i++)
 	{
 		FILE *fptr;
-		char fileName[30];
+		char fileName[30] = "";
 		if ((fptr = fopen(temp[i + 1], "rb+")) == NULL)
 		{
 			printf("Error: File %s not found\n", temp[i + 1]);
@@ -255,7 +255,7 @@ void uploadMultiFile()
 		for (int i = 0; i < atoi(temp[0]); i++)
 		{
 			FILE *fptr;
-			char fileName[30];
+			char fileName[30] = "";
 			if ((fptr = fopen(temp[i + 1], "rb+")) != NULL)
 			{
 				long filelen;
