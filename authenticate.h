@@ -1,12 +1,8 @@
-/*
-* api for authenticate
-* feature: login, logout
-*/
 
 #ifndef __AUTHENTICATE_H__
 #define __AUTHENTICATE_H__
 
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define TRUE 1
@@ -21,7 +17,8 @@
 #define LOGOUT_CODE "LOGOUT"
 #define REGISTER_CODE "REGISTER"
 
-typedef struct user {
+typedef struct user
+{
 	char username[32];
 	char password[32];
 	int status;
@@ -31,17 +28,17 @@ typedef struct user {
 } User;
 extern User *head;
 extern User *current;
-//Create new User from username, password, status
-User *createNewUser(char* username, char* password, int status);
+// Create new User from username, password, status
+User *createNewUser(char *username, char *password, int status);
 
 // print List users
 void printList();
 
 // add user to end of list
-void append(User* newUser);
+void append(User *newUser);
 
 // add user to beginning of list
-void prepend(User** head, User * newUser);
+void prepend(User **head, User *newUser);
 
 void readFile();
 
@@ -57,27 +54,24 @@ void updateFile();
 
 // get List User
 // readfile and create list users
-void getListUser(char* fileName); 
+void getListUser(char *fileName);
 
 // updateListUser
-void updateListUser(char* fileName);
+void updateListUser(char *fileName);
 
 // fucntional
-User* searchUser(char *username);
+User *searchUser(char *username);
 
-// compare password 
-int identifyPassWord(User* user, char* password);
+// compare password
+int identifyPassWord(User *user, char *password);
 
 // login
-int login(char* username, char* password);
+int login(char *username, char *password);
 
 // register
-int registerUser(char* username, char* password);
+int registerUser(char *username, char *password);
 
 // logout
 int logoutUser();
 
 #endif
-
-
-

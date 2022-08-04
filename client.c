@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include <stdio.h> /* These are the usual header files */
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -23,7 +23,7 @@ char current_user[255];
 char root[100];
 int requestId;
 int client_sock;
-struct sockaddr_in server_addr; /* server's address information */
+struct sockaddr_in server_addr;
 char choose;
 Message *mess;
 int isOnline = 0;
@@ -35,11 +35,6 @@ char **listFile;
 
 void openFolder(char *folder);
 
-/*
- * count number param of command
- * @param temp
- * @return number param
- */
 int numberElementsInArray(char **temp)
 {
 	int i;
@@ -54,11 +49,6 @@ int numberElementsInArray(char **temp)
 	return 0;
 }
 
-/*
- * count number param of command
- * @param temp
- * @return number param
- */
 int hasInList(char *element, char **temp)
 {
 	int i;
@@ -73,11 +63,6 @@ int hasInList(char *element, char **temp)
 	return 0;
 }
 
-/*
- * init new socket - print error if have error
- * @param message, int connSock
- * @return new socket
- */
 int initSock()
 {
 	int newsock = socket(AF_INET, SOCK_STREAM, 0);
@@ -89,11 +74,6 @@ int initSock()
 	return newsock;
 }
 
-/*
- * handle show notify
- * @param notify
- * @return void
- */
 void *showBubbleNotify(char *notify)
 {
 	char command[200];
@@ -102,11 +82,6 @@ void *showBubbleNotify(char *notify)
 	return NULL;
 }
 
-/*
- * handle bind new socket to server
- * @param connect port, serverAddr
- * @return void
- */
 void bindClient(int port, char *serverAddr)
 {
 	server_addr.sin_family = AF_INET;
@@ -132,10 +107,7 @@ void removeFile(char *fileName)
 		perror("Following error occurred\n");
 	}
 }
-/*
- * get list directory from server
- * @return void
- */
+
 void getDirectory()
 {
 	Message sendMsg, recvMsg1, recvMsg2;
@@ -152,10 +124,6 @@ void getDirectory()
 		listFile = str_split(recvMsg2.payload, '\n');
 }
 
-/*
- * show list directory to client screen
- * @return void
- */
 void showDirectory(char *root)
 {
 	printf("\n---------------- Your Directory ----------------\n");
@@ -166,8 +134,6 @@ void showDirectory(char *root)
 	{
 		for (i = 0; *(listFolder + i); i++)
 		{
-			/*The POSIX version of dirname and basename may modify the content of the argument.
-			Hence, we need to strdup the local_file.*/
 			char *temp = strdup(listFolder[i]);
 			char *temp2 = strdup(listFolder[i]);
 			if (strcmp(dirname(temp), root) == 0)
@@ -198,11 +164,6 @@ void showDirectory(char *root)
 	}
 }
 
-/*
- * handle upload file to server
- * @param message
- * @return void
- */
 void uploadMultiFile()
 {
 	char fullPath[100];
@@ -248,23 +209,23 @@ void uploadMultiFile()
 
 	int num_file = atoi(temp[0]);
 	char message[20];
-	for( int i = 0; i< atoi(temp[0]); i++){
+	for (int i = 0; i < atoi(temp[0]); i++)
+	{
 		FILE *fptr;
 		char fileName[30];
-		if ((fptr = fopen(temp[i+1], "rb+")) == NULL)
+		if ((fptr = fopen(temp[i + 1], "rb+")) == NULL)
 		{
-			printf("Error: File %s not found\n", temp[i+1]);
-			num_file -= 1 ;
+			printf("Error: File %s not found\n", temp[i + 1]);
+			num_file -= 1;
 		}
 		else
 		{
-			toNameOfFile(temp[i+1], fileName);
+			toNameOfFile(temp[i + 1], fileName);
 			if (option == 1)
 			{
 				char file[1024];
 				sprintf(&file[0], "_./%s/%s", current_user, fileName);
 				strcat(message, file);
-
 			}
 			else
 			{
@@ -277,7 +238,7 @@ void uploadMultiFile()
 		fclose(fptr);
 	}
 
-	char c = num_file+'0';
+	char c = num_file + '0';
 	sprintf(msg.payload, "%c%s", c, message);
 	printf("%s\n", msg.payload);
 	msg.type = TYPE_UPLOAD_FILE;
@@ -291,10 +252,11 @@ void uploadMultiFile()
 		printf("%s\n", recvMsg.payload);
 	}
 	else
-		for( int i = 0; i< atoi(temp[0]); i++){
+		for (int i = 0; i < atoi(temp[0]); i++)
+		{
 			FILE *fptr;
 			char fileName[30];
-			if ((fptr = fopen(temp[i+1], "rb+")) != NULL)
+			if ((fptr = fopen(temp[i + 1], "rb+")) != NULL)
 			{
 				long filelen;
 				fseek(fptr, 0, SEEK_END); // Jump to the end of the file
@@ -302,38 +264,36 @@ void uploadMultiFile()
 				rewind(fptr);			  // pointer to start of file
 				int sumByte = 0;
 				while (!feof(fptr))
-					{
-						int numberByteSend = PAYLOAD_SIZE;
-						if ((sumByte + PAYLOAD_SIZE) > filelen)
-						{ // if over file size
-							numberByteSend = filelen - sumByte;
-						}
-						char *buffer = (char *)malloc((numberByteSend) * sizeof(char));
-						fread(buffer, numberByteSend, 1, fptr); // read buffer with size
-						memcpy(sendMsg.payload, buffer, numberByteSend);
-						sendMsg.length = numberByteSend;
-						sumByte += numberByteSend; // increase byte send
-						if (sendMessage(client_sock, sendMsg) <= 0)
-						{
-							printf("Connection closed!\n");
-							break;
-						}
-						free(buffer);
-						if (sumByte >= filelen)
-						{
-							break;
-						}
+				{
+					int numberByteSend = PAYLOAD_SIZE;
+					if ((sumByte + PAYLOAD_SIZE) > filelen)
+					{ // if over file size
+						numberByteSend = filelen - sumByte;
 					}
-					sendMsg.length = 0;
-					sendMessage(client_sock, sendMsg);
-					receiveMessage(client_sock, &recvMsg);
-					printf("%s\n", recvMsg.payload);	
+					char *buffer = (char *)malloc((numberByteSend) * sizeof(char));
+					fread(buffer, numberByteSend, 1, fptr); // read buffer with size
+					memcpy(sendMsg.payload, buffer, numberByteSend);
+					sendMsg.length = numberByteSend;
+					sumByte += numberByteSend; // increase byte send
+					if (sendMessage(client_sock, sendMsg) <= 0)
+					{
+						printf("Connection closed!\n");
+						break;
+					}
+					free(buffer);
+					if (sumByte >= filelen)
+					{
+						break;
+					}
+				}
+				sendMsg.length = 0;
+				sendMessage(client_sock, sendMsg);
+				receiveMessage(client_sock, &recvMsg);
+				printf("%s\n", recvMsg.payload);
 			}
 			fclose(fptr);
 		}
-					
 }
-
 
 void handleSearchFile(char *fileName, char *listResult)
 {
@@ -350,11 +310,6 @@ void handleSearchFile(char *fileName, char *listResult)
 	}
 }
 
-/*
- * receive file from server and save
- * @param filename, path
- * @return void
- */
 int handleSelectDownloadFile(char *selectLink)
 {
 	char fileName[100];
@@ -474,11 +429,7 @@ int download(char *link)
 	}
 	return -1;
 }
-/*
- * method download
- * @param filename, path
- * @return void
- */
+
 void downloadFile()
 {
 	char selectLink[50];
@@ -639,11 +590,7 @@ void folderProcess(char *pre_folder, char *cur_folder)
 		printf("Syntax Error! Please choose again!\n");
 	}
 }
-/*
- * open subfolder
- * @param
- * @return void
- */
+
 void openFolder(char *folder)
 {
 	showDirectory(folder);
@@ -701,11 +648,6 @@ void connectToServer()
 	}
 }
 
-/*
- * print waiting message to screen when waitng download
- * @param
- * @return void
- */
 void printWatingMsg()
 {
 	printf("\n..................Please waiting................\n");
@@ -728,11 +670,6 @@ void getLoginInfo(char *str)
 	strcpy(str, username);
 }
 
-/*
- * get login info and login
- * @param current user
- * @return void
- */
 void loginFunc(char *current_user)
 {
 	char username[255];
@@ -760,11 +697,6 @@ void loginFunc(char *current_user)
 	}
 }
 
-/*
- * get register info
- * @param user
- * @return void
- */
 int getRegisterInfo(char *user)
 {
 	char username[255], password[255], confirmPass[255];
@@ -793,11 +725,6 @@ int getRegisterInfo(char *user)
 	}
 }
 
-/*
- * get register info and login
- * @param current user
- * @return void
- */
 void registerFunc(char *current_user)
 {
 	char username[255];
@@ -826,11 +753,6 @@ void registerFunc(char *current_user)
 	}
 }
 
-/*
- * logout from system
- * @param current user
- * @return void
- */
 void logoutFunc(char *current_user)
 {
 	mess->type = TYPE_LOGOUT;
@@ -848,11 +770,6 @@ void logoutFunc(char *current_user)
 	printf("LOGGED OUT SUCCESSFULLY!\n");
 }
 
-/*
- * get show first menu of application
- * @param
- * @return void
- */
 void menuAuthenticate()
 {
 	printf("\n------------------Storage System------------------\n");
@@ -862,11 +779,6 @@ void menuAuthenticate()
 	printf("\nChoose: ");
 }
 
-/*
- * get show main menu of application
- * @param
- * @return void
- */
 void mainMenu()
 {
 	printf("\n------------------Menu------------------\n");
@@ -878,11 +790,6 @@ void mainMenu()
 	printf("\nPlease choose: ");
 }
 
-/*
- * get check type request of authenticate
- * @param
- * @return void
- */
 void authenticateFunc()
 {
 	menuAuthenticate();
@@ -904,11 +811,6 @@ void authenticateFunc()
 	}
 }
 
-/*
- * check type file request
- * @param
- * @return void
- */
 void requestFileFunc()
 {
 	mainMenu();
@@ -956,11 +858,6 @@ void communicateWithUser()
 	}
 }
 
-/*
- * Main function
- * @param int argc, char** argv
- * @return 0
- */
 int main(int argc, char const *argv[])
 {
 	// check valid of IP and port number
