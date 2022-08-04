@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h> /* These are the usual header files */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -17,8 +17,8 @@
 #include "status.h"
 #include "path.h"
 
-#define PORT 5550
-#define BACKLOG 2
+#define PORT 5550 /* Port that will be opened */
+#define BACKLOG 2 /* Number of allowed connections */
 #define MAX_SIZE 10e6 * 100
 #define MAX_LIST_PATH 2048
 #define BUFF_SEND 1024
@@ -28,7 +28,12 @@ int requestId = 1;
 char fileRepository[100];
 
 Client onlineClient[1000];
-
+/*
+ * Init Array Client
+ * Set default value for Online Client
+ * @param
+ * @return void
+ */
 void initArrayClient()
 {
 	int i;
@@ -38,7 +43,11 @@ void initArrayClient()
 		onlineClient[i].uploadSuccess = 0; // set default value 0 for uploadSuccess
 	}
 }
-
+/*
+ * count number element in array with unknown size
+ * @param temp[][]
+ * @return size of array
+ */
 int numberElementsInArray(char **temp)
 {
 	int i;
@@ -48,7 +57,11 @@ int numberElementsInArray(char **temp)
 	}
 	return i;
 }
-
+/*
+ * Print List Online Client
+ * @param
+ * @return void
+ */
 void printListOnlineClient()
 {
 	int i;
@@ -62,7 +75,11 @@ void printListOnlineClient()
 		}
 	}
 }
-
+/*
+ * find Avaiable Position in Array Client
+ * @param
+ * @return position i if valid else return -1
+ */
 int findAvaiableElementInArrayClient()
 {
 	int i;
@@ -75,7 +92,11 @@ int findAvaiableElementInArrayClient()
 	}
 	return -1; // if not have avaiable element
 }
-
+/*
+ * find client with request id
+ * @param requestId
+ * @return position has request id if not return -1
+ */
 int findClient(int requestId)
 {
 	int i;
@@ -88,7 +109,11 @@ int findClient(int requestId)
 	}
 	return -1;
 }
-
+/*
+ * find client with username
+ * @param requestId
+ * @return position has username if not return -1
+ */
 int findClientByUsername(char *username)
 {
 	int i;
@@ -101,7 +126,11 @@ int findClientByUsername(char *username)
 	}
 	return -1;
 }
-
+/*
+ * set client into online client array
+ * @param int id, int requestId, char* username
+ * @return void
+ */
 void setClient(int i, int requestId, char *username, int connSock)
 {
 	if (i >= 0)
@@ -121,7 +150,11 @@ void increaseRequestId()
 	requestId++;
 	pthread_mutex_unlock(&lock);
 }
-
+/*
+ * handle find or create folder as user
+ * @param username
+ * @return void
+ */
 void createFolder(char *path)
 {
 	struct stat st = {0};
@@ -235,6 +268,11 @@ void handleRequestDownload(Message recvMsg, int connSock)
 	}
 }
 
+/*
+ * remove one file
+ * @param filename
+ * @return void
+ */
 void removeFile(char *fileName)
 {
 	// remove file
@@ -244,7 +282,86 @@ void removeFile(char *fileName)
 	}
 }
 
+/*
+ * receive file from client and save
+ * @param filename, path
+ * @return void
+ */
 void handleUploadFile(Message recvMsg, int connSock)
+{
+	Message sendMsg;
+	int i = findClient(recvMsg.requestId);
+	// char fileName[100];
+
+	if (strlen(recvMsg.payload) == 0)
+	{
+		printf("recvMsg.payload Empty: %s\n", recvMsg.payload);
+	}
+	else
+	{
+		if (strstr(recvMsg.payload, "Complete"))
+		{
+			printf("Upload Complete");
+			sendMsg.type = TYPE_OK;
+			sendMsg.length = 0;
+			sendMsg.requestId = recvMsg.requestId;
+			strcpy(sendMsg.payload, "Upload Successful!");
+			sendMsg.length = strlen(sendMsg.payload);
+		}
+		else
+		{
+			char fullPath[100] = "";
+			char **temp = str_split(recvMsg.payload, '_');
+			// strcpy(fullPath, recvMsg.payload);
+			for (int i = 0; i < atoi(temp[0]); i++)
+			{
+				if (fopen(temp[i + 1], "r") != NULL)
+				{ // check if file exist
+					sendMsg.type = TYPE_ERROR;
+					strcpy(sendMsg.payload, "Warning: File name already exists");
+					sendMsg.length = strlen(sendMsg.payload);
+					sendMsg.requestId = recvMsg.requestId;
+					sendMessage(onlineClient[i].connSock, sendMsg);
+					return;
+				}
+			}
+
+			for (int i = 0; i < atoi(temp[0]); i++)
+			{
+				sendMsg.type = TYPE_OK;
+				sendMsg.length = 0;
+				sendMsg.requestId = recvMsg.requestId;
+				sendMessage(onlineClient[i].connSock, sendMsg);
+				FILE *fptr = fopen(temp[i + 1], "w+");
+				while (1)
+				{
+					receiveMessage(connSock, &recvMsg);
+					// printf("%s\n", recvMsg.payload);
+					if (recvMsg.type == TYPE_ERROR)
+					{
+						fclose(fptr);
+						removeFile(fullPath);
+					}
+					if (recvMsg.length > 0 && !strstr(recvMsg.payload, "Complete"))
+					{
+						fwrite(recvMsg.payload, recvMsg.length, 1, fptr);
+					}
+					else
+					{
+						break;
+					}
+				}
+				fclose(fptr);
+				printf("Upload Successful \n");
+				strcpy(sendMsg.payload, "Upload Successful!");
+				sendMsg.length = strlen(sendMsg.payload);
+				sendMessage(onlineClient[i].connSock, sendMsg);
+			}
+		}
+	}
+}
+
+void handleUploadFileRaw(Message recvMsg, int connSock)
 {
 	// char fileName[100];
 	char fullPath[100];
@@ -296,11 +413,21 @@ void handleUploadFile(Message recvMsg, int connSock)
 	}
 }
 
+/*
+ * handle get path of file to folder of user
+ * @param filename, fullpath
+ * @return void
+ */
 void getFullPath(char *fileName, char *fullPath)
 {
 	sprintf(fullPath, "%s/%s", fileRepository, fileName);
 }
 
+/*
+ * handle login function
+ * @param message, int connSock
+ * @return void
+ */
 void handleLogin(Message mess, int connSock)
 {
 	char **temp = str_split(mess.payload, '\n'); // handle payload, divide payload to array string split by '\n'
@@ -362,7 +489,11 @@ void handleLogin(Message mess, int connSock)
 	}
 	sendWithCode(mess, loginCode, connSock);
 }
-
+/*
+ * handle register function
+ * @param message, int connSock
+ * @return void
+ */
 void handleRegister(Message mess, int connSock)
 {
 	char **temp = str_split(mess.payload, '\n');
@@ -450,6 +581,31 @@ void handleLogout(Message mess, int connSock)
 	sendWithCode(mess, logoutCode, connSock);
 }
 
+// void handleAuthenticateRequest(Message mess, int connSock)
+// {
+// 	char *payloadHeader;
+// 	char temp[PAYLOAD_SIZE];
+// 	strcpy(temp, mess.payload);
+// 	payloadHeader = getHeaderOfPayload(temp);
+// 	if (!strcmp(payloadHeader, LOGIN_CODE))
+// 	{
+// 		handleLogin(mess, connSock);
+// 	}
+// 	else if (!strcmp(payloadHeader, REGISTER_CODE))
+// 	{
+// 		handleRegister(mess, connSock);
+// 	}
+// 	else if (!strcmp(payloadHeader, LOGOUT_CODE))
+// 	{
+// 		handleLogout(mess, connSock);
+// 	}
+// }
+
+/*
+ * Handler Request from Client
+ * @param char* message, int key
+ * return void*
+ */
 void *client_handler(void *conn_sock)
 {
 	int connSock;
@@ -495,7 +651,7 @@ void *client_handler(void *conn_sock)
 			handleRequestDownload(recvMess, connSock);
 			break;
 		case TYPE_UPLOAD_FILE:
-			handleUploadFile(recvMess, connSock);
+			handleUploadFileRaw(recvMess, connSock);
 			break;
 		case TYPE_CREATE_FOLDER:
 			handleCreateFolder(recvMess);
@@ -516,9 +672,9 @@ void *client_handler(void *conn_sock)
 int main(int argc, char **argv)
 {
 	int port_number;
-	int listen_sock, conn_sock;
-	struct sockaddr_in server;
-	struct sockaddr_in client;
+	int listen_sock, conn_sock; /* file descriptors */
+	struct sockaddr_in server;	/* server's address information */
+	struct sockaddr_in client;	/* client's address information */
 	int sin_size;
 	pthread_t tid;
 
@@ -546,8 +702,8 @@ int main(int argc, char **argv)
 	// Step 2: Bind address to socket
 	bzero(&server, sizeof(server));
 	server.sin_family = AF_INET;
-	server.sin_port = htons(port_number);
-	server.sin_addr.s_addr = htonl(INADDR_ANY);
+	server.sin_port = htons(port_number);		/* Remember htons() from "Conversions" section? =) */
+	server.sin_addr.s_addr = htonl(INADDR_ANY); /* INADDR_ANY puts your IP address automatically */
 	if (bind(listen_sock, (struct sockaddr *)&server, sizeof(server)) == -1)
 	{ /* calls bind() */
 		perror("\nError: ");

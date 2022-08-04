@@ -73,7 +73,7 @@ int sendMessage(int conn_sock, Message msg)
   int bytes_sent = sendMsg(conn_sock, msg);
   if (bytes_sent <= 0)
   {
-    printf("\nSend Connection closed!\n");
+    // printf("\nSend Connection closed!\n");
     close(conn_sock);
     return -1;
   }
